@@ -43,29 +43,35 @@ export const initStore: Function = (store, ...middlewares) => {
   )
 
   class Consumer extends Component {
+    props: {
+      options: Object,
+      children: Function,
+      mapStateToProps: Function
+    }
 
     // We do this so the sCU of Prevent will ignore the children prop
     _children = () => this.props.children
 
-    prevent = ({ state, actions }) => {
-      const { mapStateToProps } = this.props
+    pure = ({ state, actions }) => {
+      const { mapStateToProps, ...rest } = this.props
       return (
-        <Prevent {...mapStateToProps(state)} actions={actions} _children={this._children} />
+        <Prevent {...mapStateToProps(state, rest)} actions={actions} _children={this._children} />
       )
     }
 
     render() {
+      const { options, children } = this.props;
       return (
         <Context.Consumer>
-          {this.prevent}
+          {options && (options.pure !== false) ? this.pure : children}
         </Context.Consumer>
       )
     }
   }
 
-  const connect = mapStateToProps => WrappedComponent => {
+  const connect = (mapStateToProps, options) => WrappedComponent => {
     const ConnectComponent = forwardRef((props, ref) =>
-      <Consumer mapStateToProps={mapStateToProps}>
+      <Consumer mapStateToProps={mapStateToProps} options={options}>
         {injectedProps => <WrappedComponent {...props} {...injectedProps} ref={ref}/>}
       </Consumer>)
     ConnectComponent.displayName = `Connect(${WrappedComponent.displayName || WrappedComponent.name || 'Unknown'})`
